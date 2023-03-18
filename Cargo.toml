@@ -18,6 +18,9 @@ exclude = ["fuzz"]
 # tokio = { path = "../tokio/tokio" }
 # mio = { git = "https://github.com/tokio-rs/mio.git" }
 # h2 = { git = "https://github.com/hyperium/h2.git" }
+rustls = { git = "https://github.com/mokeyish/rustls.git", branch = "patched_main"}
+quinn-proto = { git = "https://github.com/mokeyish/quinn.git", branch = "patched_main"}
+
 
 
 [workspace.dependencies]
@@ -66,7 +69,7 @@ parking_lot = "0.12"
 
 # ssl
 native-tls = "0.2"
-openssl = { version = "0.10", features = ["v102", "v110"] }
+openssl = { version = "=0.10.41", features = ["v102", "v110"] }
 rustls = "0.20.0"
 rustls-pemfile = "1.0.0"
 webpki = "0.22.0"
