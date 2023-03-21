@@ -400,9 +400,12 @@ impl<S: DnsUdpSocket + QuicLocalAddr + 'static> AsyncUdpSocket for QuinnAsyncUdp
         // logics from quinn-udp::fallback.rs
 
         let io = &self.io;
-        let Some(buf) = bufs.get_mut(0)else {
+        let buf = if let Some(buf) = bufs.get_mut(0) {
+            buf
+        } else {
             return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::InvalidInput,"no buf")));
         };
+
         match io.poll_recv_from(cx, buf.as_mut()) {
             Poll::Ready(res) => match res {
                 Ok((len, addr)) => {
