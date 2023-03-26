@@ -18,6 +18,9 @@ exclude = ["fuzz"]
 # tokio = { path = "../tokio/tokio" }
 # mio = { git = "https://github.com/tokio-rs/mio.git" }
 # h2 = { git = "https://github.com/hyperium/h2.git" }
+rustls = { git = "https://github.com/mokeyish/rustls.git", branch = "patched_main"}
+quinn-proto = { git = "https://github.com/mokeyish/quinn.git", branch = "patched_main"}
+
 
 
 [workspace.dependencies]
