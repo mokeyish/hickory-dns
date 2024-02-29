@@ -329,8 +329,9 @@ impl<S: DnsUdpSocket + Send> Future for NextRandomUdpSocket<S> {
                             return Poll::Ready(Ok(socket));
                         }
                         Poll::Ready(Err(err)) => match err.kind() {
-                            io::ErrorKind::AddrInUse if self.bind_address.port() != 0 => {
+                            io::ErrorKind::AddrInUse if self.bind_address.port() == 0 => {
                                 debug!("unable to bind port, attempt: {}: {}", attempt, err);
+                                // try next random port.
                                 continue;
                             }
                             _ => {
@@ -339,7 +340,6 @@ impl<S: DnsUdpSocket + Send> Future for NextRandomUdpSocket<S> {
                             }
                         },
                         Poll::Pending => {
-                            debug!("unable to bind port, attempt: {}", attempt);
                             self.state = Some((attempt, fut));
                             // returning NotReady here, perhaps the next poll there will be some more socket available.
                             return Poll::Pending;
