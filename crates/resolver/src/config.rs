@@ -845,7 +845,7 @@ impl From<Vec<NameServerConfig>> for NameServerConfigGroup {
 }
 
 /// The lookup ip strategy
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde-config", derive(Serialize, Deserialize))]
 pub enum LookupIpStrategy {
     /// Only query for A (Ipv4) records
@@ -868,7 +868,7 @@ impl Default for LookupIpStrategy {
 }
 
 /// The strategy for establishing the query order of name servers in a pool.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde-config", derive(Serialize, Deserialize))]
 pub enum ServerOrderingStrategy {
     /// Servers are ordered based on collected query statistics. The ordering
@@ -887,7 +887,7 @@ impl Default for ServerOrderingStrategy {
 }
 
 /// Configuration for the Resolver
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[cfg_attr(
     feature = "serde-config",
     derive(Serialize, Deserialize),
