@@ -33,6 +33,8 @@ use crate::proto;
 use crate::proto::h2::{HttpsClientConnect, HttpsClientStream};
 #[cfg(feature = "__h3")]
 use crate::proto::h3::{H3ClientConnect, H3ClientStream};
+#[cfg(feature = "mdns")]
+use crate::proto::multicast::{MdnsClientConnect, MdnsClientStream, MdnsQueryType};
 #[cfg(feature = "__quic")]
 use crate::proto::quic::{QuicClientConnect, QuicClientStream};
 #[cfg(feature = "tokio")]
@@ -114,6 +116,14 @@ pub(crate) enum ConnectionConnect<R: RuntimeProvider> {
     Quic(DnsExchangeConnect<QuicClientConnect, QuicClientStream, TokioTime>),
     #[cfg(all(feature = "__h3", feature = "tokio"))]
     H3(DnsExchangeConnect<H3ClientConnect, H3ClientStream, TokioTime>),
+    #[cfg(all(feature = "mdns", feature = "tokio"))]
+    Mdns(
+        DnsExchangeConnect<
+            DnsMultiplexerConnect<MdnsClientConnect, MdnsClientStream>,
+            DnsMultiplexer<MdnsClientStream>,
+            TokioTime,
+        >,
+    ),
 }
 
 /// Resolves to a new Connection
@@ -158,6 +168,12 @@ impl<R: RuntimeProvider> Future for ConnectionFuture<R> {
             }
             #[cfg(feature = "__h3")]
             ConnectionConnect::H3(conn) => {
+                let (conn, bg) = ready!(conn.poll_unpin(cx))?;
+                self.spawner.spawn_bg(bg);
+                GenericConnection(conn)
+            }
+            #[cfg(feature = "mdns")]
+            ConnectionConnect::Mdns(conn) => {
                 let (conn, bg) = ready!(conn.poll_unpin(cx))?;
                 self.spawner.spawn_bg(bg);
                 GenericConnection(conn)
@@ -317,6 +333,16 @@ impl<P: RuntimeProvider> ConnectionProvider for GenericConnector<P> {
                     client_config,
                 );
                 ConnectionConnect::H3(exchange)
+            }
+
+            #[cfg(feature = "mdns")]
+            (Protocol::Mdns, _) => {
+                let (connect, stream) =
+                    MdnsClientStream::new_ipv4(MdnsQueryType::OneShotJoin, Some(32), None);
+                let connect = DnsMultiplexer::new(connect, stream, None);
+
+                let exchange = DnsExchange::connect::<_, _, TokioTime>(connect);
+                ConnectionConnect::Mdns(exchange)
             }
             (protocol, _) => {
                 return Err(io::Error::new(

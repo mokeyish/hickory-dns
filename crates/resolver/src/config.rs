@@ -131,6 +131,17 @@ impl ResolverConfig {
         }
     }
 
+    /// Creates a mDNS configuration
+    #[cfg(feature = "mdns")]
+    pub fn mdns() -> Self {
+        Self {
+            // TODO: this should get the hostname and use the basename as the default
+            domain: None,
+            search: vec![],
+            name_servers: NameServerConfigGroup::mdns(),
+        }
+    }
+
     /// Creates a default configuration, using `1.1.1.1`, `1.0.0.1` and `2606:4700:4700::1111`, `2606:4700:4700::1001` (thank you, Cloudflare).
     ///
     /// Please see: <https://www.cloudflare.com/dns/>
@@ -531,6 +542,23 @@ impl NameServerConfigGroup {
             Protocol::H3,
             trust_negative_responses,
         )
+    }
+
+    /// Creates a mDNS configuration
+    #[cfg(feature = "mdns")]
+    pub fn mdns() -> Self {
+        Self {
+            servers: vec![
+                NameServerConfig::new(
+                    SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
+                    Protocol::Mdns,
+                ),
+                NameServerConfig::new(
+                    SocketAddr::new(Ipv6Addr::UNSPECIFIED.into(), 0),
+                    Protocol::Mdns,
+                ),
+            ],
+        }
     }
 
     /// Creates a default configuration, using `8.8.8.8`, `8.8.4.4` and `2001:4860:4860::8888`,
