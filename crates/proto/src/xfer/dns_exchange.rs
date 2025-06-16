@@ -22,6 +22,8 @@ use tracing::debug;
 use crate::h2::{HttpsClientConnect, HttpsClientStream};
 #[cfg(all(feature = "__h3", feature = "tokio"))]
 use crate::h3::{H3ClientConnect, H3ClientStream};
+#[cfg(all(feature = "mdns", feature = "tokio"))]
+use crate::multicast::{MdnsClientConnect, MdnsClientStream};
 #[cfg(all(feature = "__quic", feature = "tokio"))]
 use crate::quic::{QuicClientConnect, QuicClientStream};
 use crate::runtime::RuntimeProvider;
@@ -84,6 +86,14 @@ pub enum Connecting<R: RuntimeProvider> {
     Quic(DnsExchangeConnect<QuicClientConnect, QuicClientStream, TokioTime>),
     #[cfg(all(feature = "__h3", feature = "tokio"))]
     H3(DnsExchangeConnect<H3ClientConnect, H3ClientStream, TokioTime>),
+    #[cfg(all(feature = "mdns", feature = "tokio"))]
+    Mdns(
+        DnsExchangeConnect<
+            DnsMultiplexerConnect<MdnsClientConnect, MdnsClientStream>,
+            DnsMultiplexer<MdnsClientStream>,
+            TokioTime,
+        >,
+    ),
 }
 
 /// This is a generic Exchange implemented over multiplexed DNS connection providers.

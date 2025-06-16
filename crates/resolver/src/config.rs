@@ -243,6 +243,8 @@ pub enum ProtocolConfig {
         #[cfg_attr(feature = "serde", serde(default))]
         disable_grease: bool,
     },
+    #[cfg(feature = "mdns")]
+    Mdns,
 }
 
 impl ProtocolConfig {
@@ -258,6 +260,8 @@ impl ProtocolConfig {
             ProtocolConfig::Quic { .. } => Protocol::Quic,
             #[cfg(feature = "__h3")]
             ProtocolConfig::H3 { .. } => Protocol::H3,
+            #[cfg(feature = "mdns")]
+            ProtocolConfig::Mdns => Protocol::Mdns,
         }
     }
 }

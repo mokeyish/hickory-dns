@@ -101,6 +101,13 @@ impl<R: RuntimeProvider> Future for ConnectionFuture<R> {
                 self.spawner.spawn_bg(bg);
                 conn
             }
+            #[cfg(feature = "mdns")]
+            Connecting::Mdns(conn) => {
+                let (conn, bg) = ready!(conn.poll_unpin(cx))?;
+                self.spawner.spawn_bg(bg);
+                conn
+            }
+
             _ => unreachable!("unsupported connection type in Connecting"),
         }))
     }
@@ -140,6 +147,30 @@ impl<P: RuntimeProvider> ConnectionProvider for P {
                 let dns_conn = DnsMultiplexer::with_timeout(future, handle, options.timeout, None);
                 let exchange = DnsExchange::connect(dns_conn);
                 Connecting::Tcp(exchange)
+            }
+            #[cfg(feature = "mdns")]
+            (ProtocolConfig::Mdns, _) => {
+                use hickory_proto::multicast::{MdnsClientStream, MdnsQueryType};
+
+                let socket_addr = config.socket_addr;
+                let timeout = options.timeout;
+
+                // let (stream, handle) =
+                //     MdnsClientStream::new(socket_addr, MdnsQueryType::OneShot, None, None, Some(32));
+
+                let (stream, handle) = MdnsClientStream::new(
+                    socket_addr,
+                    MdnsQueryType::OneShotJoin,
+                    None,
+                    None,
+                    Some(32),
+                );
+
+                // TODO: need config for Signer...
+                let dns_conn = DnsMultiplexer::with_timeout(stream, handle, timeout, None);
+
+                let exchange = DnsExchange::connect(dns_conn);
+                Connecting::Mdns(exchange)
             }
             #[cfg(feature = "__tls")]
             (ProtocolConfig::Tls { server_name }, _) => {

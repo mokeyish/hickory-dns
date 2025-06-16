@@ -67,9 +67,10 @@ impl<P: ConnectionProvider> NameServer<P> {
         }
     }
 
-    #[cfg(test)]
+
+    /// decayed_srtt
     #[allow(dead_code)]
-    pub(crate) fn is_connected(&self) -> bool {
+    pub fn is_connected(&self) -> bool {
         use ConnectionState::*;
         match (self.inner.state(), self.inner.client.try_lock()) {
             (Established | Init, Some(client)) => client.is_some(),
@@ -79,7 +80,8 @@ impl<P: ConnectionProvider> NameServer<P> {
         }
     }
 
-    pub(super) fn decayed_srtt(&self) -> f64 {
+    /// decayed_srtt
+    pub fn decayed_srtt(&self) -> f64 {
         self.inner.stats.decayed_srtt()
     }
 
