@@ -84,6 +84,17 @@ pub enum Connecting<R: RuntimeProvider> {
     Quic(DnsExchangeConnect<QuicClientConnect, QuicClientStream, TokioTime>),
     #[cfg(all(feature = "__h3", feature = "tokio"))]
     H3(DnsExchangeConnect<H3ClientConnect, H3ClientStream, TokioTime>),
+    #[cfg(all(feature = "mdns", feature = "tokio"))]
+    Mdns(
+        DnsExchangeConnect<
+            DnsMultiplexerConnect<
+                crate::multicast::MdnsClientConnect,
+                crate::multicast::MdnsClientStream,
+            >,
+            DnsMultiplexer<crate::multicast::MdnsClientStream>,
+            TokioTime,
+        >,
+    ),
 }
 
 /// This is a generic Exchange implemented over multiplexed DNS connection providers.

@@ -103,6 +103,12 @@ impl<R: RuntimeProvider> Future for ConnectionFuture<R> {
                 self.spawner.spawn_bg(bg);
                 conn
             }
+            #[cfg(feature = "mdns")]
+            Connecting::Mdns(conn) => {
+                let (conn, bg) = ready!(conn.poll_unpin(cx))?;
+                self.spawner.spawn_bg(bg);
+                conn
+            }
             _ => unreachable!("unsupported connection type in Connecting"),
         }))
     }
@@ -122,6 +128,37 @@ impl<P: RuntimeProvider> ConnectionProvider for P {
         let remote_addr = SocketAddr::new(ip, config.port);
         let dns_connect = match (&config.protocol, self.quic_binder()) {
             (ProtocolConfig::Udp, _) => {
+                #[cfg(feature = "mdns")]
+                {
+                    use hickory_proto::multicast::MDNS_IPV4;
+                    use hickory_proto::multicast::MdnsClientStream;
+                    use hickory_proto::multicast::MdnsQueryType;
+
+                    if remote_addr == *MDNS_IPV4 {
+                        let timeout = options.timeout;
+
+                        // let (stream, handle) =
+                        //     MdnsClientStream::new(socket_addr, MdnsQueryType::OneShot, None, None, Some(32));
+
+                        let (stream, handle) = MdnsClientStream::new(
+                            remote_addr,
+                            MdnsQueryType::OneShotJoin,
+                            None,
+                            None,
+                            Some(32),
+                        );
+
+                        // TODO: need config for Signer...
+                        let dns_conn = DnsMultiplexer::with_timeout(stream, handle, timeout, None);
+
+                        let exchange = DnsExchange::connect(dns_conn);
+
+                        return Ok(ConnectionFuture::<P> {
+                            connect: Connecting::Mdns(exchange),
+                            spawner: self.create_handle(),
+                        });
+                    }
+                }
                 let provider_handle = self.clone();
                 let stream = UdpClientStream::builder(remote_addr, provider_handle)
                     .with_timeout(Some(options.timeout))
