@@ -55,6 +55,8 @@ tokio = ["dep:tokio", "tokio/rt", "hickory-net/tokio"]
 
 metrics = ["dep:metrics"]
 
+mdns = ["hickory-proto/mdns", "hickory-net/mdns"]
+
 [dependencies]
 async-recursion = { workspace = true, optional = true }
 cfg-if.workspace = true

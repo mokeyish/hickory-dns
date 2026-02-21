@@ -36,12 +36,23 @@ pub struct DnsResponse {
 
 // TODO: when `impl Trait` lands in stable, remove this, and expose FlatMap over answers, et al.
 impl DnsResponse {
+    fn new_with_checked(message: Message, buffer: Vec<u8>) -> Result<Self, ProtoError> {
+        use crate::op::MessageType;
+        use alloc::boxed::Box;
+        if message.message_type() != MessageType::Response {
+            return Err(ProtoError::FormError {
+                header: *message.header(),
+                error: Box::new("expected response".into()),
+            });
+        }
+
+        Ok(Self { message, buffer })
+    }
+
     /// Constructs a new DnsResponse with a buffer synthesized from the message
     pub fn from_message(message: Message) -> Result<Self, ProtoError> {
-        Ok(Self {
-            buffer: message.to_vec()?,
-            message,
-        })
+        let buffer = message.to_vec()?;
+        Self::new_with_checked(message, buffer)
     }
 
     /// Constructs a new DnsResponse by parsing a message from a buffer.
@@ -49,7 +60,7 @@ impl DnsResponse {
     /// Returns an error if the response message cannot be decoded.
     pub fn from_buffer(buffer: Vec<u8>) -> Result<Self, ProtoError> {
         let message = Message::from_vec(&buffer)?;
-        Ok(Self { message, buffer })
+        Self::new_with_checked(message, buffer)
     }
 
     /// Retrieves the SOA from the response. This will only exist if it was an authoritative response.

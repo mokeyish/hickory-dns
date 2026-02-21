@@ -81,6 +81,44 @@ impl<P: RuntimeProvider> ConnectionProvider for P {
         let remote_addr = SocketAddr::new(ip, config.port);
         match (&config.protocol, self.quic_binder()) {
             (ProtocolConfig::Udp, _) => {
+                #[cfg(feature = "mdns")]
+                {
+                    use hickory_net::DnsMultiplexer;
+                    use hickory_net::multicast::MDNS_IPV4;
+                    use hickory_net::multicast::MdnsClientStream;
+                    use hickory_net::multicast::MdnsQueryType;
+                    use hickory_net::runtime::Spawn;
+
+                    if remote_addr == *MDNS_IPV4 {
+                        let timeout = cx.options.timeout;
+
+                        // let (stream, stream_handle) =
+                        //     MdnsClientStream::new(socket_addr, MdnsQueryType::OneShot, None, None, Some(32));
+
+                        let (stream, stream_handle) = MdnsClientStream::new(
+                            remote_addr,
+                            MdnsQueryType::OneShotJoin,
+                            None,
+                            None,
+                            Some(32),
+                        );
+
+                        // TODO: need config for Signer...
+
+                        let provider = self.clone();
+
+                        return Ok(Box::pin(async move {
+                            let mut handle = provider.create_handle();
+                            let stream = stream.await;
+                            let multiplexer =
+                                DnsMultiplexer::new(stream?, stream_handle).with_timeout(timeout);
+                            let (exchange, bg) = DnsExchange::from_stream(multiplexer);
+                            handle.spawn_bg(bg);
+                            Ok(exchange)
+                        }));
+                    }
+                }
+
                 let (timeout, os_port_selection, avoid_local_udp_ports, bind_addr, provider) = (
                     cx.options.timeout,
                     cx.options.os_port_selection,
